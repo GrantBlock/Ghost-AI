@@ -3,7 +3,7 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-- Feature 05 (Prisma) — complete
+- Feature 06 (Project APIs) — complete
 
 ## Current Goal
 - Next feature per context/feature-specs/00-feature-list.md
@@ -20,12 +20,14 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 05: Prisma — prisma/schema.prisma (generator `prisma-client` -> app/generated/prisma, postgresql datasource) plus prisma/models/project.prisma: `ProjectStatus` enum (DRAFT, ARCHIVED), `Project` (ownerId = Clerk user id, name, optional description, status, canvasJsonPath, timestamps; indexes on ownerId and createdAt) and `ProjectCollaborator` (cascade-delete relation to Project, email, createdAt; unique [projectId, email]; indexes on email and [projectId, createdAt]). lib/prisma.ts is a cached singleton (cached on globalThis outside production): `prisma+postgres://` URLs use Accelerate, anything else uses @prisma/adapter-pg. First migration `init` applied to Prisma Postgres; client generated; tsc and `npm run build` pass. Not yet wired to the UI (projects are still mock data from lib/projects.ts).
 
+- Feature 06: Project APIs — app/api/projects/route.ts with GET (list caller's projects, newest first), POST (create; missing/blank name defaults to "untitled-project"; id via schema cuid()), PATCH (rename, body {id, name}) and DELETE (body {id}). ownerId is the Clerk userId. Unauthenticated -> 401, non-owner rename/delete -> 403, unknown id -> 404, bad input -> 400; consistent `{ error }` JSON. proxy.ts now skips auth.protect() for /api routes (it would return 404 to unauthenticated API calls), so handlers enforce auth themselves. Backend only; UI still uses mock projects. `npm run build` passes.
+
 ## In Progress
 
 - None.
 
 ## Next Up
-- Next feature per context/feature-specs/00-feature-list.md (replace mock projects in lib/projects.ts with Prisma-backed persistence).
+- Next feature per context/feature-specs/00-feature-list.md (wire the UI to /api/projects, replacing mock projects in lib/projects.ts).
 
 ## Open Questions
 
