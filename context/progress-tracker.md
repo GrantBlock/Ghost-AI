@@ -3,10 +3,10 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-- Feature 06 (Project APIs) — complete
+- Feature 07 (Wire Editor) — complete
 
 ## Current Goal
-- Next feature per context/feature-specs/00-feature-list.md
+- Next feature per context/feature-specs/00-feature-list.md (canvas workspace at /editor/[projectId])
 
 ## Completed
 
@@ -22,12 +22,14 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 06: Project APIs — app/api/projects/route.ts with GET (list caller's projects, newest first), POST (create; missing/blank name defaults to "untitled-project"; id via schema cuid()), PATCH (rename, body {id, name}) and DELETE (body {id}). ownerId is the Clerk userId. Unauthenticated -> 401, non-owner rename/delete -> 403, unknown id -> 404, bad input -> 400; consistent `{ error }` JSON. proxy.ts now skips auth.protect() for /api routes (it would return 404 to unauthenticated API calls), so handlers enforce auth themselves. Backend only; UI still uses mock projects. `npm run build` passes.
 
+- Feature 07: Wire Editor — /editor is a server component (Suspense + `getUserProjects()` in lib/project-data.ts: owned projects, plus shared projects matched by the user's Clerk emails against ProjectCollaborator, case-insensitive) passing both lists to the client `EditorShell` (navbar, sidebar, dialogs; components/editor/editor-shell.tsx, editor-home.tsx). hooks/use-project-actions.ts replaces the mock use-project-dialogs.ts: create (short random suffix generated when the dialog opens, `buildRoomId` = slugify(name)-suffix, POST /api/projects with {id, name}, then router.push to /editor/{id}), rename (stores target id + name, PATCH /api/projects/[id], router.refresh), delete (DELETE /api/projects/[id]; router.replace("/editor") when on that workspace, else refresh); API errors are shown in the dialogs. Create dialog previews the room ID. Backend changes: POST /api/projects now accepts an optional `id` (lowercase slug pattern, 409 if taken) so project ID == Liveblocks room ID; new app/api/projects/[id]/route.ts (PATCH/DELETE, same owner checks); shared helpers moved to lib/project-api.ts; the body-based PATCH/DELETE on /api/projects remain. Added a placeholder app/editor/[projectId]/page.tsx (shows name + room ID, notFound() without access) so create has somewhere to navigate. lib/projects.ts: MOCK_PROJECTS and Project.slug removed. tsc, eslint and `npm run build` pass; not exercised against a live signed-in session.
+
 ## In Progress
 
 - None.
 
 ## Next Up
-- Next feature per context/feature-specs/00-feature-list.md (wire the UI to /api/projects, replacing mock projects in lib/projects.ts).
+- Next feature per context/feature-specs/00-feature-list.md (canvas workspace at /editor/[projectId]; Liveblocks room = project ID).
 
 ## Open Questions
 

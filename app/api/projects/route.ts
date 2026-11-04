@@ -1,40 +1,16 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import {
+  authorizeOwner,
+  errorResponse as error,
+  MAX_NAME_LENGTH,
+  readBody,
+  readString,
+} from "@/lib/project-api";
 import { prisma } from "@/lib/prisma";
+import { MAX_PROJECT_ID_LENGTH, PROJECT_ID_PATTERN } from "@/lib/projects";
 
 const DEFAULT_PROJECT_NAME = "untitled-project";
-const MAX_NAME_LENGTH = 100;
-
-function error(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status });
-}
-
-async function readBody(request: Request): Promise<Record<string, unknown> | null> {
-  try {
-    const body: unknown = await request.json();
-    if (body && typeof body === "object" && !Array.isArray(body)) {
-      return body as Record<string, unknown>;
-    }
-  } catch {
-    // fall through
-  }
-  return null;
-}
-
-/** Returns a trimmed string, or null when the value is not a non-empty string. */
-function readString(value: unknown): string | null {
-  if (typeof value !== "string") return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-/** Loads a project and verifies the caller owns it. */
-async function authorizeOwner(projectId: string, userId: string) {
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project) return { response: error("Project not found", 404) } as const;
-  if (project.ownerId !== userId) return { response: error("Forbidden", 403) } as const;
-  return { project } as const;
-}
 
 export async function GET() {
   const { userId } = await auth();
@@ -57,7 +33,20 @@ export async function POST(request: Request) {
   const name = readString(body.name) ?? DEFAULT_PROJECT_NAME;
   if (name.length > MAX_NAME_LENGTH) return error("Name is too long", 400);
 
-  const project = await prisma.project.create({ data: { ownerId: userId, name } });
+  // Optional client-supplied ID keeps the project ID aligned with its Liveblocks room ID.
+  const id = readString(body.id);
+  if (id !== null) {
+    if (id.length > MAX_PROJECT_ID_LENGTH || !PROJECT_ID_PATTERN.test(id)) {
+      return error("Invalid project id", 400);
+    }
+    if (await prisma.project.findUnique({ where: { id } })) {
+      return error("A project with this id already exists", 409);
+    }
+  }
+
+  const project = await prisma.project.create({
+    data: { ...(id ? { id } : {}), ownerId: userId, name },
+  });
   return NextResponse.json({ project }, { status: 201 });
 }
 

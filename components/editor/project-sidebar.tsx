@@ -1,6 +1,8 @@
 "use client";
 
 import { FolderOpen, Pencil, Plus, Trash2, Users, X } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -14,8 +16,8 @@ interface ProjectSidebarProps {
   ownedProjects: Project[];
   sharedProjects: Project[];
   onCreate: () => void;
-  onRename: (projectId: string) => void;
-  onDelete: (projectId: string) => void;
+  onRename: (project: Project) => void;
+  onDelete: (project: Project) => void;
 }
 
 interface EmptyStateProps {
@@ -36,22 +38,36 @@ function EmptyState({ icon, title, description }: EmptyStateProps) {
 
 interface ProjectItemProps {
   project: Project;
-  onRename: (projectId: string) => void;
-  onDelete: (projectId: string) => void;
+  onRename: (project: Project) => void;
+  onDelete: (project: Project) => void;
 }
 
 function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
+  const isActive = usePathname() === `/editor/${project.id}`;
+
   return (
-    <li className="group flex items-center gap-1 rounded-xl px-3 py-2 hover:bg-elevated">
-      <span className="min-w-0 flex-1 truncate text-sm text-copy-secondary group-hover:text-copy-primary">
+    <li
+      className={cn(
+        "group flex items-center gap-1 rounded-xl px-3 py-2 hover:bg-elevated",
+        isActive && "bg-elevated"
+      )}
+    >
+      <Link
+        href={`/editor/${project.id}`}
+        aria-current={isActive ? "page" : undefined}
+        className={cn(
+          "min-w-0 flex-1 truncate text-sm text-copy-secondary group-hover:text-copy-primary",
+          isActive && "text-copy-primary"
+        )}
+      >
         {project.name}
-      </span>
+      </Link>
       {project.isOwner ? (
         <div className="flex shrink-0 items-center gap-0.5 opacity-100 transition-opacity md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
           <Button
             variant="ghost"
             size="icon-xs"
-            onClick={() => onRename(project.id)}
+            onClick={() => onRename(project)}
             aria-label={`Rename ${project.name}`}
             className="text-copy-muted hover:text-copy-primary"
           >
@@ -60,7 +76,7 @@ function ProjectItem({ project, onRename, onDelete }: ProjectItemProps) {
           <Button
             variant="ghost"
             size="icon-xs"
-            onClick={() => onDelete(project.id)}
+            onClick={() => onDelete(project)}
             aria-label={`Delete ${project.name}`}
             className="text-copy-muted hover:text-destructive"
           >

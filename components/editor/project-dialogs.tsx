@@ -5,17 +5,17 @@ import type { FormEvent } from "react";
 import { EditorDialog } from "@/components/editor/editor-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { useProjectDialogs } from "@/hooks/use-project-dialogs";
+import type { useProjectActions } from "@/hooks/use-project-actions";
 
-type ProjectDialogsState = ReturnType<typeof useProjectDialogs>;
+type ProjectActionsState = ReturnType<typeof useProjectActions>;
 
 interface ProjectDialogsProps {
-  state: ProjectDialogsState;
+  state: ProjectActionsState;
 }
 
-/** Create / Rename / Delete project dialogs, driven by useProjectDialogs. */
+/** Create / Rename / Delete project dialogs, driven by useProjectActions. */
 export function ProjectDialogs({ state }: ProjectDialogsProps) {
-  const { dialog, targetProject, name, setName, slug, isLoading, close, submit } =
+  const { dialog, targetProject, name, setName, roomId, error, isLoading, close, submit } =
     state;
 
   const canSubmit = name.trim().length > 0 && !isLoading;
@@ -44,9 +44,10 @@ export function ProjectDialogs({ state }: ProjectDialogsProps) {
               className="text-copy-primary placeholder:text-copy-faint"
             />
             <p className="text-xs text-copy-muted">
-              Slug:{" "}
-              <span className="text-copy-secondary">{slug || "your-project"}</span>
+              Room ID:{" "}
+              <span className="text-copy-secondary">{roomId}</span>
             </p>
+            {error ? <p className="text-xs text-destructive">{error}</p> : null}
           </div>
           <div className="-mx-6 -mb-6 flex justify-end gap-2 rounded-b-3xl border-t border-surface-border bg-elevated p-4">
             <Button type="button" variant="ghost" onClick={close}>
@@ -76,6 +77,7 @@ export function ProjectDialogs({ state }: ProjectDialogsProps) {
             autoFocus
             className="text-copy-primary placeholder:text-copy-faint"
           />
+          {error ? <p className="text-xs text-destructive">{error}</p> : null}
           <div className="-mx-6 -mb-6 flex justify-end gap-2 rounded-b-3xl border-t border-surface-border bg-elevated p-4">
             <Button type="button" variant="ghost" onClick={close}>
               Cancel
@@ -110,7 +112,9 @@ export function ProjectDialogs({ state }: ProjectDialogsProps) {
             </Button>
           </>
         }
-      />
+      >
+        {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      </EditorDialog>
     </>
   );
 }
