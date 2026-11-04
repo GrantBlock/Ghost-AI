@@ -1,10 +1,9 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Public routes are derived from the existing Clerk env vars.
-const isPublicRoute = createRouteMatcher([
-  `${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/sign-in"}(.*)`,
-  `${process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/sign-up"}(.*)`,
-]);
+// The auth pages are mounted at fixed routes (app/sign-in, app/sign-up), so the
+// public matcher uses the same literal paths. Keep NEXT_PUBLIC_CLERK_SIGN_IN_URL
+// and NEXT_PUBLIC_CLERK_SIGN_UP_URL set to /sign-in and /sign-up.
+const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
 
 const isApiRoute = createRouteMatcher(["/api(.*)"]);
 
