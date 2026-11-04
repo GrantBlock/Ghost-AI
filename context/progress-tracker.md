@@ -3,7 +3,7 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-- Feature 03 (Auth) — complete
+- Feature 04 (Project Dialogs) — complete
 
 ## Current Goal
 - Next feature per context/feature-specs/00-feature-list.md
@@ -16,12 +16,14 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 03: Auth — @clerk/ui installed. ClerkProvider in app/layout.tsx (wrapped in Suspense, required by cacheComponents) uses `clerkAppearance` from lib/clerk-appearance.ts (Clerk `dark` theme + variables mapped to app CSS vars, no hardcoded colors). Sign-in/sign-up pages use components/auth/auth-shell.tsx (two-panel on lg: logo, tagline, text-only feature list | centered Clerk form; form only on small screens). proxy.ts protects all routes except sign-in/sign-up (paths read from NEXT_PUBLIC_CLERK_SIGN_IN_URL / SIGN_UP_URL). `/` redirects to /editor when signed in, else /sign-in. EditorNavbar right section now renders UserButton. Added a minimal app/editor/page.tsx mounting navbar + sidebar so the redirect target exists. `npm run build` passes.
 
+- Feature 04: Project Dialogs — /editor home (heading, description, New Project button with Plus; no cards). hooks/use-project-dialogs.ts owns dialog, form and loading state plus a mock project list (lib/projects.ts: Project type, slugify, MOCK_PROJECTS; mock 400ms latency, no API/persistence). components/editor/project-dialogs.tsx renders Create (name input + live slug preview), Rename (prefilled, current name in description, autofocus, Enter submits) and Delete (destructive confirm only) on top of EditorDialog. ProjectSidebar now lists projects with rename/delete actions for owned projects only (hidden for shared), a New Project button wired to Create, and a mobile backdrop scrim that closes the sidebar on tap. Replaced the earlier standalone create-project-dialog.tsx. tsc and eslint pass.
+
 ## In Progress
 
 - None.
 
 ## Next Up
-- Feature 04 (see context/feature-specs/00-feature-list.md)
+- Next feature per context/feature-specs/00-feature-list.md (persistence and sidebar New Project wiring not yet done).
 
 ## Open Questions
 
