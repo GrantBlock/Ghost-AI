@@ -3,7 +3,7 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-- Feature 02 (Editor Chrome) — complete
+- Feature 03 (Auth) — complete
 
 ## Current Goal
 - Next feature per context/feature-specs/00-feature-list.md
@@ -14,12 +14,14 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 02: Editor Chrome — added components/editor/editor-navbar.tsx (fixed-height navbar, left/center/right sections, sidebar toggle using PanelLeftOpen/PanelLeftClose, right empty), components/editor/project-sidebar.tsx (floating absolute overlay that slides in from the left without pushing content, `isOpen` prop, Projects header + close button, shadcn Tabs "My projects"/"Shared" with empty placeholders, full-width New Project button with Plus icon), and components/editor/editor-dialog.tsx (reusable dialog pattern: title, description, body, footer actions; token-styled, rounded-3xl). No actual dialogs built yet; components are not yet mounted in a route.
 
+- Feature 03: Auth — @clerk/ui installed. ClerkProvider in app/layout.tsx (wrapped in Suspense, required by cacheComponents) uses `clerkAppearance` from lib/clerk-appearance.ts (Clerk `dark` theme + variables mapped to app CSS vars, no hardcoded colors). Sign-in/sign-up pages use components/auth/auth-shell.tsx (two-panel on lg: logo, tagline, text-only feature list | centered Clerk form; form only on small screens). proxy.ts protects all routes except sign-in/sign-up (paths read from NEXT_PUBLIC_CLERK_SIGN_IN_URL / SIGN_UP_URL). `/` redirects to /editor when signed in, else /sign-in. EditorNavbar right section now renders UserButton. Added a minimal app/editor/page.tsx mounting navbar + sidebar so the redirect target exists. `npm run build` passes.
+
 ## In Progress
 
 - None.
 
 ## Next Up
-- Feature 03 (see context/feature-specs/00-feature-list.md)
+- Feature 04 (see context/feature-specs/00-feature-list.md)
 
 ## Open Questions
 
