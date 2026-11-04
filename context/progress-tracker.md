@@ -3,7 +3,7 @@
 Update this file whenever the current phase, active feature, or implementation state changes.
 
 ## Current Phase
-- Feature 04 (Project Dialogs) — complete
+- Feature 05 (Prisma) — complete
 
 ## Current Goal
 - Next feature per context/feature-specs/00-feature-list.md
@@ -18,12 +18,14 @@ Update this file whenever the current phase, active feature, or implementation s
 
 - Feature 04: Project Dialogs — /editor home (heading, description, New Project button with Plus; no cards). hooks/use-project-dialogs.ts owns dialog, form and loading state plus a mock project list (lib/projects.ts: Project type, slugify, MOCK_PROJECTS; mock 400ms latency, no API/persistence). components/editor/project-dialogs.tsx renders Create (name input + live slug preview), Rename (prefilled, current name in description, autofocus, Enter submits) and Delete (destructive confirm only) on top of EditorDialog. ProjectSidebar now lists projects with rename/delete actions for owned projects only (hidden for shared), a New Project button wired to Create, and a mobile backdrop scrim that closes the sidebar on tap. Replaced the earlier standalone create-project-dialog.tsx. tsc and eslint pass.
 
+- Feature 05: Prisma — prisma/schema.prisma (generator `prisma-client` -> app/generated/prisma, postgresql datasource) plus prisma/models/project.prisma: `ProjectStatus` enum (DRAFT, ARCHIVED), `Project` (ownerId = Clerk user id, name, optional description, status, canvasJsonPath, timestamps; indexes on ownerId and createdAt) and `ProjectCollaborator` (cascade-delete relation to Project, email, createdAt; unique [projectId, email]; indexes on email and [projectId, createdAt]). lib/prisma.ts is a cached singleton (cached on globalThis outside production): `prisma+postgres://` URLs use Accelerate, anything else uses @prisma/adapter-pg. First migration `init` applied to Prisma Postgres; client generated; tsc and `npm run build` pass. Not yet wired to the UI (projects are still mock data from lib/projects.ts).
+
 ## In Progress
 
 - None.
 
 ## Next Up
-- Next feature per context/feature-specs/00-feature-list.md (persistence and sidebar New Project wiring not yet done).
+- Next feature per context/feature-specs/00-feature-list.md (replace mock projects in lib/projects.ts with Prisma-backed persistence).
 
 ## Open Questions
 
@@ -46,5 +48,5 @@ Update this file whenever the current phase, active feature, or implementation s
 - @liveblocks/node installed alongside existing @liveblocks/client, @liveblocks/react, @liveblocks/react-flow, @liveblocks/react-ui. Liveblocks client uses lazy init (getLiveblocks()) to avoid key validation errors at build time.
 - @vercel/blob ^2.3.3 installed. BLOB_READ_WRITE_TOKEN set in .env.local.
 - @trigger.dev/sdk ^4.4.4 installed. trigger.config.ts reads project ref from TRIGGER_PROJECT_REF env var. TRIGGER_SECRET_KEY must be set in .env.local for triggering tasks from server code. Run `npx trigger.dev@latest dev` for local development; deploy with `npx trigger.dev@latest deploy`.
-- Prisma 7.8.0 — generated client goes to app/generated/prisma/; import PrismaClient from @/app/generated/prisma/client (no index.ts in v7). Constructor always requires { adapter } argument. @prisma/adapter-pg used for all connections.
-- prisma.config.ts uses schema: "prisma/" (multi-file schema) and reads DATABASE_URL from .env via dotenv.
+- Prisma 7.10.1 (CLI, client and adapter pinned to v7; v8 is still a release candidate) — generated client goes to app/generated/prisma/; import PrismaClient from @/app/generated/prisma/client (no index.ts in v7). Constructor always requires { adapter } argument. @prisma/adapter-pg used for all connections.
+- The Prisma CLI loads prisma7.config.ts (it takes precedence over prisma.config.ts, so only that file exists). It uses schema: "prisma" (multi-file schema) and reads DATABASE_URL from .env.local then .env via dotenv. DATABASE_URL is the pooled Prisma Postgres URL; `prisma migrate dev` did not generate the client here, so run `npx prisma generate` afterwards.
