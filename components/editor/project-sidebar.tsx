@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 interface ProjectSidebarProps {
   isOpen: boolean;
-  onClose?: () => void;
+  onClose: () => void;
   ownedProjects: Project[];
   sharedProjects: Project[];
   onCreate: () => void;

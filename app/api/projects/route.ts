@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import {
   authorizeOwner,
   errorResponse as error,
+  hasPrismaCode,
   MAX_NAME_LENGTH,
   readBody,
   readString,
@@ -30,10 +31,16 @@ export async function POST(request: Request) {
   const body = await readBody(request);
   if (!body) return error("Invalid JSON body", 400);
 
+  if (body.name !== undefined && body.name !== null && typeof body.name !== "string") {
+    return error("`name` must be a string", 400);
+  }
   const name = readString(body.name) ?? DEFAULT_PROJECT_NAME;
   if (name.length > MAX_NAME_LENGTH) return error("Name is too long", 400);
 
   // Optional client-supplied ID keeps the project ID aligned with its Liveblocks room ID.
+  if (body.id !== undefined && body.id !== null && typeof body.id !== "string") {
+    return error("Invalid project id", 400);
+  }
   const id = readString(body.id);
   if (id !== null) {
     if (id.length > MAX_PROJECT_ID_LENGTH || !PROJECT_ID_PATTERN.test(id)) {
@@ -44,10 +51,18 @@ export async function POST(request: Request) {
     }
   }
 
-  const project = await prisma.project.create({
-    data: { ...(id ? { id } : {}), ownerId: userId, name },
-  });
-  return NextResponse.json({ project }, { status: 201 });
+  try {
+    const project = await prisma.project.create({
+      data: { ...(id ? { id } : {}), ownerId: userId, name },
+    });
+    return NextResponse.json({ project }, { status: 201 });
+  } catch (err) {
+    // Concurrent create with the same id slipped past the check above.
+    if (hasPrismaCode(err, "P2002")) {
+      return error("A project with this id already exists", 409);
+    }
+    throw err;
+  }
 }
 
 export async function PATCH(request: Request) {
@@ -63,8 +78,14 @@ export async function PATCH(request: Request) {
   const result = await authorizeOwner(id, userId);
   if ("response" in result) return result.response;
 
-  const project = await prisma.project.update({ where: { id }, data: { name } });
-  return NextResponse.json({ project });
+  try {
+    const project = await prisma.project.update({ where: { id }, data: { name } });
+    return NextResponse.json({ project });
+  } catch (err) {
+    // Deleted between the ownership check and the update.
+    if (hasPrismaCode(err, "P2025")) return error("Project not found", 404);
+    throw err;
+  }
 }
 
 export async function DELETE(request: Request) {
@@ -78,6 +99,12 @@ export async function DELETE(request: Request) {
   const result = await authorizeOwner(id, userId);
   if ("response" in result) return result.response;
 
-  await prisma.project.delete({ where: { id } });
-  return NextResponse.json({ id });
+  try {
+    await prisma.project.delete({ where: { id } });
+    return NextResponse.json({ id });
+  } catch (err) {
+    // Already deleted between the ownership check and the delete.
+    if (hasPrismaCode(err, "P2025")) return error("Project not found", 404);
+    throw err;
+  }
 }

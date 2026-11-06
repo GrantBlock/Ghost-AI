@@ -4,7 +4,7 @@
 
 Dark only. No light mode. The visual language is a dark technical workspace — near-black backgrounds, layered surfaces, and vivid accent colors for interactive elements.
 
-All colors are defined as CSS custom properties in `globals.css` and mapped to Tailwind tokens via `@theme inline`. Components must use these tokens — no hardcoded hex values or raw Tailwind color classes like `zinc-*`.
+All colors are defined as CSS custom properties in `globals.css` and mapped to Tailwind tokens via `@theme inline`. Components must use these tokens — no hardcoded hex values or raw Tailwind color classes like `zinc-*` in UI styling. (Canvas node/edge palette constants defined below are data values and are the exception.)
 
 | Role             | CSS Variable           | Hex / Value               |
 | ---------------- | ---------------------- | ------------------------- |

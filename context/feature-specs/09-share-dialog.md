@@ -36,3 +36,9 @@ Enforce ownership server-side for invite and remove actions.
 Do not add a local user table.
 
 ## Check When Done
+
+- share dialog opens from the workspace
+- owners can invite and remove collaborators
+- collaborators see read-only access
+- collaborator names/avatars load from Clerk when available
+- `npm run build` passes

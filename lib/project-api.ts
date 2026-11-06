@@ -28,6 +28,16 @@ export function readString(value: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+/** True when `err` is a Prisma known-request error with the given code (e.g. P2002, P2025). */
+export function hasPrismaCode(err: unknown, code: string): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    (err as { code?: unknown }).code === code
+  );
+}
+
 /** Loads a project and verifies the caller owns it. */
 export async function authorizeOwner(projectId: string, userId: string) {
   const project = await prisma.project.findUnique({ where: { id: projectId } });

@@ -13,7 +13,10 @@ export interface UserProjects {
 export async function getUserProjects(): Promise<UserProjects> {
   const { userId } = await auth.protect();
   const user = await currentUser();
-  const emails = (user?.emailAddresses ?? []).map((e) => e.emailAddress);
+  // Only verified addresses grant access to shared projects.
+  const emails = (user?.emailAddresses ?? [])
+    .filter((e) => e.verification?.status === "verified")
+    .map((e) => e.emailAddress);
 
   const [owned, shared] = await Promise.all([
     prisma.project.findMany({

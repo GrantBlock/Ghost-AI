@@ -1,19 +1,10 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-// The auth pages are mounted at fixed routes (app/sign-in, app/sign-up), so the
-// public matcher uses the same literal paths. Keep NEXT_PUBLIC_CLERK_SIGN_IN_URL
-// and NEXT_PUBLIC_CLERK_SIGN_UP_URL set to /sign-in and /sign-up.
-const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/sign-up(.*)"]);
-
-const isApiRoute = createRouteMatcher(["/api(.*)"]);
-
-export default clerkMiddleware(async (auth, req) => {
-  // API routes enforce auth themselves so they can return 401 JSON
-  // (auth.protect() would answer unauthenticated API calls with a 404).
-  if (!isPublicRoute(req) && !isApiRoute(req)) {
-    await auth.protect();
-  }
-});
+// Keep the proxy bare: it only attaches Clerk auth state to each request.
+// Route protection happens at the resource instead of by URL path matching:
+//   - pages call getCurrentIdentity() / auth.protect() (see app/editor, lib/project-data.ts)
+//   - API routes check auth themselves so they can return 401 JSON
+export default clerkMiddleware();
 
 export const config = {
   matcher: [

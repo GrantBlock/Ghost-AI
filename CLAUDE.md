@@ -168,10 +168,14 @@ export const taskWithWaits = task({
     await wait.until({ date: new Date("2024-12-25") });
 
     // Wait for token (from external system)
-    await wait.forToken({
-      token: "user-approval-token",
-      timeoutInSeconds: 3600, // 1 hour timeout
+    const token = await wait.createToken({
+      timeout: "1h", // 1 hour timeout
     });
+    // Share token.id / token.url with the external system, which completes it
+    const result = await wait.forToken(token);
+    if (!result.ok) {
+      throw new Error("Approval token timed out");
+    }
 
     console.log("All waits completed");
     return { status: "completed" };
@@ -240,7 +244,7 @@ for await (const run of runs.subscribeToRunsWithTag("user_123")) {
 **Tag Best Practices:**
 
 - Use prefixes: `user_123`, `org_abc`, `video:456`
-- Max 10 tags per run, 1-64 characters each
+- Max 10 tags per run, 1-128 characters each
 - Tags don't propagate to child tasks automatically
 
 ## Batch Triggering v2
@@ -265,9 +269,9 @@ Enhanced batch triggering with larger payloads and streaming ingestion.
 
 | Tier | Concurrent Batches |
 |------|-------------------|
-| Free | 1 |
+| Free | 5 |
 | Hobby | 10 |
-| Pro | 10 |
+| Pro | 50 |
 
 ### Usage
 
@@ -528,6 +532,10 @@ export const paymentTask = task({
       idempotencyKey,
       idempotencyKeyTTL: "24h", // Key expires in 24 hours
     });
+    // Note: the Trigger.dev key only dedupes child triggers. Inside chargeCustomer,
+    // also pass a stable provider-side idempotency key derived from payload.orderId
+    // (e.g. `payment-${payload.orderId}`) to the payment provider's charge call,
+    // so a retry within chargeCustomer cannot charge the customer twice.
   },
 });
 
@@ -639,7 +647,7 @@ export const tracedTask = task({
       return result;
     } catch (error) {
       logger.error("Processing failed", {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         userId: payload.userId,
       });
       throw error;
@@ -777,7 +785,7 @@ extensions: [
 #### Python
 
 ```ts
-import { pythonExtension } from "@trigger.dev/build/extensions/python";
+import { pythonExtension } from "@trigger.dev/python/extension";
 
 extensions: [
   pythonExtension({
@@ -788,6 +796,8 @@ extensions: [
 ];
 
 // Usage in tasks
+import { python } from "@trigger.dev/python";
+
 const result = await python.runInline(`print("Hello, world!")`);
 const output = await python.runScript("./python/script.py", ["arg1"]);
 ```
@@ -974,7 +984,7 @@ export default defineConfig({
 
 ```ts
 import { PrismaInstrumentation } from "@prisma/instrumentation";
-import { OpenAIInstrumentation } from "@langfuse/openai";
+import { OpenAIInstrumentation } from "@traceloop/instrumentation-openai";
 
 export default defineConfig({
   // ... other config
@@ -1096,7 +1106,7 @@ await schedules.create({
   cron: "0 0 * * *",
   timezone: "America/New_York", // DST-aware
   externalId: "user_123",
-  deduplicationKey: "user_123-daily", // updates if reused
+  deduplicationKey: `user_123-daily-${envName}`, // envName: your own "dev" | "staging" | "prod" value. Keys are project-scoped, so include it; updates if reused
 });
 ```
 
@@ -1124,7 +1134,7 @@ export async function POST(req: Request) {
       cron: "0 8 * * *",
       timezone: data.timezone,
       externalId: data.userId,
-      deduplicationKey: `${data.userId}-reminder`,
+      deduplicationKey: `${data.userId}-reminder-${envName}`, // include the environment
     })
   );
 }
@@ -1151,7 +1161,7 @@ export async function POST(req: Request) {
 ```ts
 await schedules.retrieve(id);
 await schedules.list();
-await schedules.update(id, { cron: "0 0 1 * *", externalId: "ext", deduplicationKey: "key" });
+await schedules.update(id, { cron: "0 0 1 * *", externalId: "ext", deduplicationKey: `key-${envName}` });
 await schedules.deactivate(id);
 await schedules.activate(id);
 await schedules.del(id);
@@ -1160,7 +1170,7 @@ await schedules.timezones(); // list of IANA timezones
 
 ## Dashboard
 
-Create/attach schedules visually (Task, Cron pattern, Timezone, Optional: External ID, Dedup key, Environments). Test scheduled tasks from the **Test** page.
+Create/attach schedules visually (Task, Cron pattern, Timezone, Optional: External ID, Dedup key, Environments). Test scheduled tasks from the task page in the dashboard.
 
 <!-- TRIGGER.DEV scheduled-tasks END -->
 

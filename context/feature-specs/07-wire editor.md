@@ -6,17 +6,17 @@ The editor home page is a server component.
 
 Fetch owned and shared projects server-side using the existing project data helper and pass both lists to the sidebar.
 
-No client-side fetching for intial load.
+No client-side fetching for initial load.
 
 ### `Use Project Actions`
 
-Creat a hook in `hooks/` that manages dialog state and project mutations.
+Create a hook in `hooks/` that manages dialog state and project mutations.
 
 
 **Create**
 
 - manage create dialog state
-- mange project name input
+- manage project name input
 - generate a short unique suffix
 - slugify the name to create the room ID
 - call `POST /api/projects`
@@ -34,7 +34,7 @@ The project ID and Liveblocks room ID should stay aligned.
 **Delete**
 
 - store target project
-- call `DELETE /api/projects/[id]'
+- call `DELETE /api/projects/[id]`
 - redirect to `/editor` if deleting the active workspace
 - otherwise refresh
 
@@ -42,8 +42,8 @@ The project ID and Liveblocks room ID should stay aligned.
 
 Connect the hook to the sidebar and dialogs.
 
-- create dialof shows room ID preview
-- rename dialof pre-fills current name
+- create dialog shows room ID preview
+- rename dialog pre-fills current name
 - delete dialog shows project name
 
 ### Check When Done
