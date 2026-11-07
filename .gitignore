@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local notes
+/context/current-issues.md
+/context/Notes
+
+/app/generated/prisma
