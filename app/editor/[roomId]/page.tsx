@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
+import { CanvasRoom } from "@/components/canvas/canvas-room";
 import { AccessDenied } from "@/components/editor/access-denied";
 import { EditorShell } from "@/components/editor/editor-shell";
 import { getProjectIfAccessible, getCurrentIdentity } from "@/lib/project-access";
@@ -29,12 +30,7 @@ async function WorkspaceLoader({
       projectId={project.id}
       isOwner={project.isOwner}
     >
-      {/* Canvas placeholder: real canvas logic arrives in a later feature. */}
-      <div className="flex h-full items-center justify-center bg-base px-6 text-center">
-        <p className="text-sm text-copy-muted">
-          Canvas for {project.name} will appear here.
-        </p>
-      </div>
+      <CanvasRoom roomId={project.id} />
     </EditorShell>
   );
 }
