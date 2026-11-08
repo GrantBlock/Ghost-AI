@@ -7,6 +7,8 @@ import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog } from "@/components/editor/share-dialog";
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
+import { IMPORT_TEMPLATE_EVENT } from "@/components/editor/starter-templates";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import type { Project } from "@/lib/projects";
 import { cn } from "@/lib/utils";
@@ -36,6 +38,7 @@ export function EditorShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(true);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const actions = useProjectActions();
 
   return (
@@ -47,6 +50,7 @@ export function EditorShell({
         isAiOpen={isAiOpen}
         onToggleAi={() => setIsAiOpen((open) => !open)}
         onShare={() => setIsShareOpen(true)}
+        onOpenTemplates={() => setIsTemplatesOpen(true)}
       />
       <div className="relative flex-1 overflow-hidden">
         <ProjectSidebar
@@ -88,6 +92,17 @@ export function EditorShell({
         )}
       </div>
       <ProjectDialogs state={actions} />
+      {projectName ? (
+        <StarterTemplatesModal
+          open={isTemplatesOpen}
+          onOpenChange={setIsTemplatesOpen}
+          onImport={(template) =>
+            window.dispatchEvent(
+              new CustomEvent(IMPORT_TEMPLATE_EVENT, { detail: template })
+            )
+          }
+        />
+      ) : null}
       {projectId ? (
         <ShareDialog
           projectId={projectId}
