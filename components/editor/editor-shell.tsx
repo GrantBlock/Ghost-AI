@@ -1,15 +1,16 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
+import { AiSidebar } from "@/components/editor/ai-sidebar";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
 import { ShareDialog } from "@/components/editor/share-dialog";
+import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
+import { IMPORT_TEMPLATE_EVENT } from "@/components/editor/starter-templates";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import type { Project } from "@/lib/projects";
-import { cn } from "@/lib/utils";
 
 interface EditorShellProps {
   ownedProjects: Project[];
@@ -36,6 +37,7 @@ export function EditorShell({
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAiOpen, setIsAiOpen] = useState(true);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
   const actions = useProjectActions();
 
   return (
@@ -47,6 +49,7 @@ export function EditorShell({
         isAiOpen={isAiOpen}
         onToggleAi={() => setIsAiOpen((open) => !open)}
         onShare={() => setIsShareOpen(true)}
+        onOpenTemplates={() => setIsTemplatesOpen(true)}
       />
       <div className="relative flex-1 overflow-hidden">
         <ProjectSidebar
@@ -59,27 +62,9 @@ export function EditorShell({
           onDelete={actions.openDelete}
         />
         {projectName ? (
-          <div className="flex h-full">
-            <main className="min-w-0 flex-1">{children as ReactNode}</main>
-            <aside
-              aria-label="AI assistant"
-              aria-hidden={!isAiOpen}
-              inert={!isAiOpen}
-              className={cn(
-                "shrink-0 overflow-hidden border-surface-border bg-surface transition-[width] duration-200 ease-out",
-                isAiOpen ? "w-80 max-w-[85vw] border-l" : "w-0"
-              )}
-            >
-              <div className="flex h-full w-80 max-w-[85vw] flex-col items-center justify-center gap-2 px-6 text-center">
-                <Sparkles className="h-6 w-6 text-copy-faint" />
-                <p className="text-sm font-medium text-copy-secondary">
-                  AI assistant
-                </p>
-                <p className="text-xs text-copy-muted">
-                  AI chat will appear here.
-                </p>
-              </div>
-            </aside>
+          <div className="h-full">
+            <main className="h-full min-w-0">{children as ReactNode}</main>
+            <AiSidebar isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
           </div>
         ) : typeof children === "function" ? (
           children({ openCreate: actions.openCreate })
@@ -88,6 +73,17 @@ export function EditorShell({
         )}
       </div>
       <ProjectDialogs state={actions} />
+      {projectName ? (
+        <StarterTemplatesModal
+          open={isTemplatesOpen}
+          onOpenChange={setIsTemplatesOpen}
+          onImport={(template) =>
+            window.dispatchEvent(
+              new CustomEvent(IMPORT_TEMPLATE_EVENT, { detail: template })
+            )
+          }
+        />
+      ) : null}
       {projectId ? (
         <ShareDialog
           projectId={projectId}

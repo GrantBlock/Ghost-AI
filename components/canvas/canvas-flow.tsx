@@ -5,20 +5,36 @@ import {
   Background,
   BackgroundVariant,
   ConnectionMode,
+  MarkerType,
   MiniMap,
   Panel,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  type DefaultEdgeOptions,
+  type EdgeTypes,
   type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useCallback, useRef, useState, type DragEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+} from "react";
 
+import { CanvasControls } from "@/components/canvas/canvas-controls";
+import { CanvasEdgeView } from "@/components/canvas/canvas-edge";
 import { CanvasNodeView } from "@/components/canvas/canvas-node";
 import { NodeShape } from "@/components/canvas/node-shape";
+import {
+  IMPORT_TEMPLATE_EVENT,
+  type CanvasTemplate,
+} from "@/components/editor/starter-templates";
 import { ShapePanel } from "@/components/canvas/shape-panel";
 import {
+  CANVAS_EDGE_TYPE,
   CANVAS_NODE_TYPE,
   DEFAULT_NODE_COLOR,
   SHAPE_DRAG_MIME,
@@ -30,6 +46,15 @@ import {
 
 // Defined at module level so React Flow gets a stable reference.
 const nodeTypes: NodeTypes = { [CANVAS_NODE_TYPE]: CanvasNodeView };
+
+const edgeTypes: EdgeTypes = { [CANVAS_EDGE_TYPE]: CanvasEdgeView };
+
+// New connections use the custom edge: light rounded stroke with an arrowhead.
+const DEFAULT_EDGE_OPTIONS: DefaultEdgeOptions = {
+  type: CANVAS_EDGE_TYPE,
+  markerEnd: { type: MarkerType.ArrowClosed, color: "#f8fafc" },
+  style: { stroke: "#f8fafc", strokeWidth: 1, strokeLinecap: "round" },
+};
 
 function readPayload(event: DragEvent): ShapeDragPayload | null {
   const raw = event.dataTransfer.getData(SHAPE_DRAG_MIME);
@@ -79,7 +104,46 @@ function Canvas() {
     CanvasNode,
     CanvasEdge
   >();
+  const reactFlow = useReactFlow<CanvasNode, CanvasEdge>();
   const counter = useRef(0);
+
+  // Starter templates replace the whole canvas through the shared flow state.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function onImport(event: Event) {
+      const template = (event as CustomEvent<CanvasTemplate>).detail;
+      const { deleteElements, addNodes, addEdges, getNodes, getEdges, fitView } =
+        reactFlow;
+
+      await deleteElements({ nodes: getNodes(), edges: getEdges() });
+      if (cancelled) return;
+
+      // Fresh ids so re-importing never collides with just-removed elements.
+      const stamp = Date.now();
+      const rename = (id: string) => `${id}-${stamp}`;
+      const copy = structuredClone(template);
+      addNodes(copy.nodes.map((n) => ({ ...n, id: rename(n.id) })));
+      addEdges(
+        copy.edges.map((e) => ({
+          ...e,
+          id: rename(e.id),
+          source: rename(e.source),
+          target: rename(e.target),
+        }))
+      );
+
+      // Let React Flow measure the new nodes before fitting.
+      setTimeout(() => void fitView({ duration: 300, padding: 0.2 }), 100);
+    }
+
+    window.addEventListener(IMPORT_TEMPLATE_EVENT, onImport);
+    return () => {
+      cancelled = true;
+      window.removeEventListener(IMPORT_TEMPLATE_EVENT, onImport);
+    };
+  }, [reactFlow]);
+
   const [preview, setPreview] = useState<ShapePreview | null>(null);
 
   const onDragStart = useCallback(
@@ -167,17 +231,22 @@ function Canvas() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onDelete={onDelete}
         connectionMode={ConnectionMode.Loose}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
         colorMode="dark"
         fitView
         proOptions={{ hideAttribution: true }}
       >
         <MiniMap pannable zoomable />
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+        <Panel position="bottom-left" className="z-10">
+          <CanvasControls />
+        </Panel>
         <Panel position="bottom-center">
           <ShapePanel />
         </Panel>
