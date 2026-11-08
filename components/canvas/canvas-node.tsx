@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  Handle,
   NodeResizer,
+  Position,
   useReactFlow,
   type NodeProps,
 } from "@xyflow/react";
@@ -13,6 +15,7 @@ import {
   type KeyboardEvent,
 } from "react";
 
+import { NodeColorToolbar } from "@/components/canvas/node-color-toolbar";
 import { NodeShape } from "@/components/canvas/node-shape";
 import {
   NODE_COLORS,
@@ -35,6 +38,21 @@ const RESIZE_LINE_STYLE: CSSProperties = {
   borderColor: "var(--accent-primary)",
   borderWidth: 1,
   opacity: 0.4,
+};
+
+// Loose connection mode lets "source" handles connect to each other, so one handle per side is enough.
+const HANDLE_POSITIONS = [
+  Position.Top,
+  Position.Right,
+  Position.Bottom,
+  Position.Left,
+];
+
+const HANDLE_STYLE: CSSProperties = {
+  width: 10,
+  height: 10,
+  backgroundColor: "#ffffff",
+  border: "1px solid var(--border-subtle)",
 };
 
 /** Zero-width space keeps an empty (or trailing-newline) label one line tall. */
@@ -65,7 +83,7 @@ export function CanvasNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
   }, []);
 
   return (
-    <>
+    <div className="group relative h-full w-full">
       <NodeResizer
         isVisible={selected}
         minWidth={MIN_NODE_WIDTH}
@@ -73,6 +91,7 @@ export function CanvasNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
         handleStyle={RESIZE_HANDLE_STYLE}
         lineStyle={RESIZE_LINE_STYLE}
       />
+      <NodeColorToolbar nodeId={id} color={data.color} isVisible={selected} />
       <NodeShape
         shape={data.shape}
         color={data.color}
@@ -106,6 +125,16 @@ export function CanvasNodeView({ id, data, selected }: NodeProps<CanvasNode>) {
           )}
         </div>
       </NodeShape>
-    </>
+      {HANDLE_POSITIONS.map((position) => (
+        <Handle
+          key={position}
+          id={position}
+          type="source"
+          position={position}
+          style={HANDLE_STYLE}
+          className="opacity-0 transition-opacity group-hover:opacity-100"
+        />
+      ))}
+    </div>
   );
 }

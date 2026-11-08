@@ -5,20 +5,26 @@ import {
   Background,
   BackgroundVariant,
   ConnectionMode,
+  MarkerType,
   MiniMap,
   Panel,
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  type DefaultEdgeOptions,
+  type EdgeTypes,
   type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useCallback, useRef, useState, type DragEvent } from "react";
 
+import { CanvasControls } from "@/components/canvas/canvas-controls";
+import { CanvasEdgeView } from "@/components/canvas/canvas-edge";
 import { CanvasNodeView } from "@/components/canvas/canvas-node";
 import { NodeShape } from "@/components/canvas/node-shape";
 import { ShapePanel } from "@/components/canvas/shape-panel";
 import {
+  CANVAS_EDGE_TYPE,
   CANVAS_NODE_TYPE,
   DEFAULT_NODE_COLOR,
   SHAPE_DRAG_MIME,
@@ -30,6 +36,15 @@ import {
 
 // Defined at module level so React Flow gets a stable reference.
 const nodeTypes: NodeTypes = { [CANVAS_NODE_TYPE]: CanvasNodeView };
+
+const edgeTypes: EdgeTypes = { [CANVAS_EDGE_TYPE]: CanvasEdgeView };
+
+// New connections use the custom edge: light rounded stroke with an arrowhead.
+const DEFAULT_EDGE_OPTIONS: DefaultEdgeOptions = {
+  type: CANVAS_EDGE_TYPE,
+  markerEnd: { type: MarkerType.ArrowClosed, color: "#f8fafc" },
+  style: { stroke: "#f8fafc", strokeWidth: 1, strokeLinecap: "round" },
+};
 
 function readPayload(event: DragEvent): ShapeDragPayload | null {
   const raw = event.dataTransfer.getData(SHAPE_DRAG_MIME);
@@ -167,17 +182,22 @@ function Canvas() {
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onDelete={onDelete}
         connectionMode={ConnectionMode.Loose}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
         colorMode="dark"
         fitView
         proOptions={{ hideAttribution: true }}
       >
         <MiniMap pannable zoomable />
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+        <Panel position="bottom-left" className="z-10">
+          <CanvasControls />
+        </Panel>
         <Panel position="bottom-center">
           <ShapePanel />
         </Panel>
