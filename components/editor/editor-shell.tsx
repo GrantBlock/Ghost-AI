@@ -1,8 +1,8 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
+import { AiSidebar } from "@/components/editor/ai-sidebar";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
@@ -11,7 +11,6 @@ import { StarterTemplatesModal } from "@/components/editor/starter-templates-mod
 import { IMPORT_TEMPLATE_EVENT } from "@/components/editor/starter-templates";
 import { useProjectActions } from "@/hooks/use-project-actions";
 import type { Project } from "@/lib/projects";
-import { cn } from "@/lib/utils";
 
 interface EditorShellProps {
   ownedProjects: Project[];
@@ -63,27 +62,9 @@ export function EditorShell({
           onDelete={actions.openDelete}
         />
         {projectName ? (
-          <div className="flex h-full">
-            <main className="min-w-0 flex-1">{children as ReactNode}</main>
-            <aside
-              aria-label="AI assistant"
-              aria-hidden={!isAiOpen}
-              inert={!isAiOpen}
-              className={cn(
-                "shrink-0 overflow-hidden border-surface-border bg-surface transition-[width] duration-200 ease-out",
-                isAiOpen ? "w-80 max-w-[85vw] border-l" : "w-0"
-              )}
-            >
-              <div className="flex h-full w-80 max-w-[85vw] flex-col items-center justify-center gap-2 px-6 text-center">
-                <Sparkles className="h-6 w-6 text-copy-faint" />
-                <p className="text-sm font-medium text-copy-secondary">
-                  AI assistant
-                </p>
-                <p className="text-xs text-copy-muted">
-                  AI chat will appear here.
-                </p>
-              </div>
-            </aside>
+          <div className="h-full">
+            <main className="h-full min-w-0">{children as ReactNode}</main>
+            <AiSidebar isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
           </div>
         ) : typeof children === "function" ? (
           children({ openCreate: actions.openCreate })
