@@ -1,6 +1,16 @@
 "use client";
 
-import { Bot, Download, FileText, Send, Sparkles, X } from "lucide-react";
+import {
+  AlertCircle,
+  Bot,
+  CheckCircle2,
+  Download,
+  FileText,
+  Loader2,
+  Send,
+  Sparkles,
+  X,
+} from "lucide-react";
 import {
   useLayoutEffect,
   useRef,
@@ -12,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useAiStatus } from "@/hooks/use-ai-status";
 import { cn } from "@/lib/utils";
 
 interface AiSidebarProps {
@@ -41,6 +52,8 @@ const tabTriggerClass =
 
 function ArchitectTab({ projectId }: { projectId?: string }) {
   const [isSending, setIsSending] = useState(false);
+  const { isGenerating, latest } = useAiStatus();
+  const isBusy = isSending || isGenerating;
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -63,7 +76,7 @@ function ArchitectTab({ projectId }: { projectId?: string }) {
 
   async function submit(text: string) {
     const content = text.trim();
-    if (!content || isSending) return;
+    if (!content || isBusy) return;
     addMessage("user", content);
     setDraft("");
     if (!projectId) return;
@@ -152,14 +165,31 @@ function ArchitectTab({ projectId }: { projectId?: string }) {
       </ScrollArea>
 
       <div className="shrink-0 border-t border-surface-border p-3">
+        {latest?.text ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-2 flex items-center gap-2 rounded-xl bg-subtle px-3 py-1.5 text-xs text-copy-primary"
+          >
+            {latest.kind === "error" ? (
+              <AlertCircle className="h-3.5 w-3.5 shrink-0 text-state-error" />
+            ) : latest.kind === "complete" ? (
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent-ai-text" />
+            ) : (
+              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-accent-ai-text" />
+            )}
+            <span className="truncate">{latest.text}</span>
+          </div>
+        ) : null}
         <div className="flex items-end gap-2">
           <Textarea
             ref={textareaRef}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe your architecture…"
+            placeholder={isGenerating ? "Ghost AI is working…" : "Describe your architecture…"}
             aria-label="Message Ghost AI"
+            disabled={isBusy}
             rows={1}
             style={{ minHeight: TEXTAREA_MIN_HEIGHT, maxHeight: TEXTAREA_MAX_HEIGHT }}
             className="min-h-0 resize-none rounded-xl text-sm"
@@ -167,11 +197,16 @@ function ArchitectTab({ projectId }: { projectId?: string }) {
           <Button
             size="icon"
             onClick={() => void submit(draft)}
-            disabled={!draft.trim() || isSending}
+            disabled={!draft.trim() || isBusy}
+            aria-busy={isBusy}
             aria-label="Send message"
             className="shrink-0 rounded-xl bg-accent-ai text-white hover:bg-accent-ai/90"
           >
-            <Send className="h-4 w-4" />
+            {isBusy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </div>
         <p className="mt-2 text-[11px] text-copy-faint">

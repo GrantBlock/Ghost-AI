@@ -16,15 +16,14 @@ import {
   type CanvasNode,
   type CanvasNodeShape,
 } from "../../types/canvas";
+import { AI_STATUS_FEED_ID, AI_USER_ID } from "../../types/tasks";
 
 export interface DesignAgentPayload {
   prompt: string;
   roomId: string;
 }
 
-/** Shared status feed (read by the canvas) and the AI's presence identity. */
-export const AI_STATUS_FEED_ID = "ai-status";
-const AI_USER_ID = "ghost-ai";
+/** AI presence identity and feed ID come from types/tasks.ts. */
 const AI_USER_INFO = { name: "Ghost AI", avatar: "", color: "#BF7AF0" };
 // Presence expires on its own if the task dies before clearing it (seconds).
 const PRESENCE_TTL = 60;
@@ -113,7 +112,7 @@ async function pushStatus(
     await liveblocks.createFeedMessage({
       roomId,
       feedId: AI_STATUS_FEED_ID,
-      data: { kind, message, runId, author: AI_USER_ID },
+      data: { kind, text: message, runId },
     });
   } catch (err) {
     // Status is best-effort; never fail the design run because of it.
@@ -124,7 +123,7 @@ async function pushStatus(
 async function setAiPresence(
   liveblocks: Liveblocks,
   roomId: string,
-  data: { cursor: { x: number; y: number } | null; isThinking: boolean },
+  data: { cursor: { x: number; y: number } | null; thinking: boolean },
   ttl = PRESENCE_TTL
 ) {
   try {
@@ -345,12 +344,12 @@ export const designAgentTask = task({
     let heartbeat: ReturnType<typeof setInterval> | undefined;
 
     try {
-      await setAiPresence(liveblocks, roomId, { cursor: null, isThinking: true });
+      await setAiPresence(liveblocks, roomId, { cursor: null, thinking: true });
       // Keep the AI visible during slow model calls (presence has a TTL).
       heartbeat = setInterval(() => {
         void setAiPresence(liveblocks, roomId, {
           cursor: lastCursor,
-          isThinking: true,
+          thinking: true,
         });
       }, PRESENCE_HEARTBEAT_MS);
       await pushStatus(liveblocks, roomId, runId, "start", "Ghost AI started working");
@@ -409,7 +408,7 @@ export const designAgentTask = task({
         if (cursor) {
           applied += 1;
           lastCursor = cursor;
-          await setAiPresence(liveblocks, roomId, { cursor, isThinking: true });
+          await setAiPresence(liveblocks, roomId, { cursor, thinking: true });
         }
       }
 
@@ -438,7 +437,7 @@ export const designAgentTask = task({
       await setAiPresence(
         liveblocks,
         roomId,
-        { cursor: null, isThinking: false },
+        { cursor: null, thinking: false },
         PRESENCE_CLEAR_TTL
       );
     }

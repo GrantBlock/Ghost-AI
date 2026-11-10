@@ -7,8 +7,8 @@ declare global {
     Presence: {
       /** Cursor position on the canvas, or null when the cursor is not on it. */
       cursor: { x: number; y: number } | null;
-      /** True while the user is waiting on / triggering an AI response. */
-      isThinking: boolean;
+      /** True while the participant is waiting on / running an AI response. */
+      thinking: boolean;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.
@@ -27,12 +27,11 @@ declare global {
     // Custom events, for useBroadcastEvent, useEventListener
     RoomEvent: {};
 
-    // Messages in the shared AI status feed ("ai-status"), written by the design agent
+    // Messages in the shared "ai-status-feed" (validated by aiStatusMessageSchema in types/tasks.ts)
     FeedMessageData: {
-      kind: "start" | "processing" | "complete" | "error";
-      message: string;
-      runId: string;
-      author: string;
+      text?: string;
+      kind?: "start" | "processing" | "complete" | "error";
+      runId?: string;
     };
 
     // Custom metadata set on threads, for useThreads, useCreateThread, etc.

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { CanvasRoom } from "@/components/canvas/canvas-room";
+import { CanvasRoom, LiveblocksRoom } from "@/components/canvas/canvas-room";
 import { AccessDenied } from "@/components/editor/access-denied";
 import { EditorShell } from "@/components/editor/editor-shell";
 import { getProjectIfAccessible, getCurrentIdentity } from "@/lib/project-access";
@@ -23,6 +23,7 @@ async function WorkspaceLoader({
   const { owned, shared } = await getUserProjects();
 
   return (
+    <LiveblocksRoom roomId={project.id}>
     <EditorShell
       ownedProjects={owned}
       sharedProjects={shared}
@@ -32,6 +33,7 @@ async function WorkspaceLoader({
     >
       <CanvasRoom roomId={project.id} />
     </EditorShell>
+    </LiveblocksRoom>
   );
 }
 

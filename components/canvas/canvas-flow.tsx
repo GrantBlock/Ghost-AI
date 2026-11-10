@@ -24,7 +24,7 @@ import {
   type DragEvent,
 } from "react";
 
-import { AiCursor, AiStatusBanner } from "@/components/canvas/ai-activity";
+import { LiveCursors } from "@/components/canvas/ai-activity";
 import { CanvasControls } from "@/components/canvas/canvas-controls";
 import { CanvasEdgeView } from "@/components/canvas/canvas-edge";
 import { CanvasNodeView } from "@/components/canvas/canvas-node";
@@ -262,13 +262,10 @@ function Canvas({ projectId }: { projectId: string }) {
         <Panel position="bottom-left" className="z-10">
           <CanvasControls />
         </Panel>
-        <Panel position="top-center">
-          <AiStatusBanner />
-        </Panel>
         <Panel position="bottom-center">
           <ShapePanel />
         </Panel>
-        <AiCursor />
+        <LiveCursors />
       </ReactFlow>
     </div>
   );
