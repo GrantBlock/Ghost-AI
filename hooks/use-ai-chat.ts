@@ -30,10 +30,10 @@ export function useAiChat() {
   }, [raw]);
 
   const send = useCallback(
-    (sender: string, content: string) => {
+    (sender: string, content: string, role: AiChatMessage["role"] = "user") => {
       const message: AiChatMessage = {
         sender,
-        role: "user",
+        role,
         content,
         timestamp: Date.now(),
       };

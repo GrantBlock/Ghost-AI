@@ -3,7 +3,6 @@
 import {
   AlertCircle,
   Bot,
-  CheckCircle2,
   Download,
   FileText,
   Loader2,
@@ -12,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -23,9 +23,10 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { useSelf } from "@liveblocks/react";
+import { useRoom, useSelf } from "@liveblocks/react";
 import { useAiChat } from "@/hooks/use-ai-chat";
 import { useAiStatus } from "@/hooks/use-ai-status";
+import { useDesignRun } from "@/hooks/use-design-run";
 import { cn } from "@/lib/utils";
 
 interface AiSidebarProps {
@@ -38,6 +39,8 @@ const STARTER_PROMPTS = [
   "Create a chat app architecture",
   "Build a CI/CD pipeline",
 ];
+
+const AI_SENDER_NAME = "Ghost AI";
 
 const TEXTAREA_MIN_HEIGHT = 72;
 const TEXTAREA_MAX_HEIGHT = 160;
@@ -55,7 +58,21 @@ function ArchitectTab() {
   const { latest } = useAiStatus();
   const { messages, send } = useAiChat();
   const self = useSelf();
+  const room = useRoom();
   const senderName = self?.info?.name ?? "Guest";
+
+  // AI replies go to the shared chat feed so every collaborator sees them.
+  const postAiMessage = useCallback(
+    (content: string) => {
+      void send(AI_SENDER_NAME, content, "assistant").catch(() => {});
+    },
+    [send]
+  );
+  const { start, isRunning } = useDesignRun(room.id, {
+    onSuccess: (summary) => postAiMessage(summary?.trim() || "Design updated on the canvas."),
+    onError: (message) => postAiMessage(`Something went wrong: ${message}`),
+  });
+  const isBusy = isSending || isRunning;
   const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bottomRef = useRef<HTMLLIElement>(null);
@@ -78,12 +95,13 @@ function ArchitectTab() {
 
   async function submit(text: string) {
     const content = text.trim();
-    if (!content || isSending) return;
+    if (!content || isBusy) return;
     setIsSending(true);
     setSendError(null);
     try {
       await send(senderName, content);
       setDraft("");
+      void start(content);
     } catch {
       setSendError("Message failed to send. Try again.");
     } finally {
@@ -141,8 +159,8 @@ function ArchitectTab() {
                   <p
                     className={cn(
                       "max-w-[85%] rounded-2xl px-3 py-2 text-sm break-words whitespace-pre-wrap",
-                      mine
-                        ? "border-2 border-brand/50 bg-accent-dim text-copy-primary"
+                      message.role === "user"
+                        ? "bg-[#62C073] text-[#0F2E18]"
                         : "border border-surface-border bg-elevated text-copy-primary"
                     )}
                   >
@@ -157,20 +175,17 @@ function ArchitectTab() {
       </ScrollArea>
 
       <div className="shrink-0 border-t border-surface-border p-3">
-        {latest?.text ? (
+        {isRunning ? (
           <div
             role="status"
             aria-live="polite"
-            className="mb-2 flex items-center gap-2 rounded-xl bg-subtle px-3 py-1.5 text-xs text-copy-primary"
+            className="mb-2 flex items-center gap-2 rounded-xl border border-[#62C073]/40 bg-base px-3 py-1.5 text-xs text-copy-primary"
           >
-            {latest.kind === "error" ? (
-              <AlertCircle className="h-3.5 w-3.5 shrink-0 text-state-error" />
-            ) : latest.kind === "complete" ? (
-              <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-accent-ai-text" />
-            ) : (
-              <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-accent-ai-text" />
-            )}
-            <span className="truncate">{latest.text}</span>
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#62C073] opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#62C073]" />
+            </span>
+            <span className="truncate">{latest?.text ?? "Ghost AI is getting started…"}</span>
           </div>
         ) : null}
         {sendError ? (
@@ -187,7 +202,7 @@ function ArchitectTab() {
             onKeyDown={handleKeyDown}
             placeholder="Message the room…"
             aria-label="Message the room"
-            disabled={isSending}
+            disabled={isBusy}
             rows={1}
             style={{ minHeight: TEXTAREA_MIN_HEIGHT, maxHeight: TEXTAREA_MAX_HEIGHT }}
             className="min-h-0 resize-none rounded-xl text-sm"
@@ -195,12 +210,12 @@ function ArchitectTab() {
           <Button
             size="icon"
             onClick={() => void submit(draft)}
-            disabled={!draft.trim() || isSending}
-            aria-busy={isSending}
+            disabled={!draft.trim() || isBusy}
+            aria-busy={isBusy}
             aria-label="Send message"
-            className="shrink-0 rounded-xl bg-accent-ai text-white hover:bg-accent-ai/90"
+            className="shrink-0 rounded-xl bg-[#62C073] text-[#0F2E18] hover:bg-[#62C073]/90 disabled:opacity-50"
           >
-            {isSending ? (
+            {isBusy ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Send className="h-4 w-4" />
