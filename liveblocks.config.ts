@@ -27,6 +27,14 @@ declare global {
     // Custom events, for useBroadcastEvent, useEventListener
     RoomEvent: {};
 
+    // Messages in the shared AI status feed ("ai-status"), written by the design agent
+    FeedMessageData: {
+      kind: "start" | "processing" | "complete" | "error";
+      message: string;
+      runId: string;
+      author: string;
+    };
+
     // Custom metadata set on threads, for useThreads, useCreateThread, etc.
     ThreadMetadata: {};
 

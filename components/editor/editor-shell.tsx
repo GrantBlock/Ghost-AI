@@ -6,6 +6,11 @@ import { AiSidebar } from "@/components/editor/ai-sidebar";
 import { EditorNavbar } from "@/components/editor/editor-navbar";
 import { ProjectDialogs } from "@/components/editor/project-dialogs";
 import { ProjectSidebar } from "@/components/editor/project-sidebar";
+import {
+  SAVE_CANVAS_EVENT,
+  SaveStatusProvider,
+  type SaveStatus,
+} from "@/components/editor/save-status";
 import { ShareDialog } from "@/components/editor/share-dialog";
 import { StarterTemplatesModal } from "@/components/editor/starter-templates-modal";
 import { IMPORT_TEMPLATE_EVENT } from "@/components/editor/starter-templates";
@@ -38,9 +43,11 @@ export function EditorShell({
   const [isAiOpen, setIsAiOpen] = useState(true);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const actions = useProjectActions();
 
   return (
+    <SaveStatusProvider value={setSaveStatus}>
     <div className="flex h-screen flex-col bg-base">
       <EditorNavbar
         isSidebarOpen={isSidebarOpen}
@@ -50,6 +57,8 @@ export function EditorShell({
         onToggleAi={() => setIsAiOpen((open) => !open)}
         onShare={() => setIsShareOpen(true)}
         onOpenTemplates={() => setIsTemplatesOpen(true)}
+        onSave={() => window.dispatchEvent(new Event(SAVE_CANVAS_EVENT))}
+        saveStatus={saveStatus}
       />
       <div className="relative flex-1 overflow-hidden">
         <ProjectSidebar
@@ -64,7 +73,11 @@ export function EditorShell({
         {projectName ? (
           <div className="h-full">
             <main className="h-full min-w-0">{children as ReactNode}</main>
-            <AiSidebar isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} />
+            <AiSidebar
+              isOpen={isAiOpen}
+              onClose={() => setIsAiOpen(false)}
+              projectId={projectId}
+            />
           </div>
         ) : typeof children === "function" ? (
           children({ openCreate: actions.openCreate })
@@ -93,5 +106,6 @@ export function EditorShell({
         />
       ) : null}
     </div>
+    </SaveStatusProvider>
   );
 }

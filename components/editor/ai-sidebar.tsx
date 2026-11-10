@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 interface AiSidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Project (= Liveblocks room) the design agent edits. */
+  projectId?: string;
 }
 
 interface ChatMessage {
@@ -37,7 +39,8 @@ const TEXTAREA_MAX_HEIGHT = 160;
 const tabTriggerClass =
   "text-copy-muted hover:text-copy-secondary data-active:bg-accent-ai/15 data-active:text-accent-ai-text dark:text-copy-muted dark:hover:text-copy-secondary dark:data-active:border-transparent dark:data-active:bg-accent-ai/15 dark:data-active:text-accent-ai-text";
 
-function ArchitectTab() {
+function ArchitectTab({ projectId }: { projectId?: string }) {
+  const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -54,20 +57,43 @@ function ArchitectTab() {
     )}px`;
   }, [draft]);
 
-  function submit(text: string) {
+  function addMessage(role: ChatMessage["role"], content: string) {
+    setMessages((prev) => [...prev, { id: nextId.current++, role, content }]);
+  }
+
+  async function submit(text: string) {
     const content = text.trim();
-    if (!content) return;
-    setMessages((prev) => [
-      ...prev,
-      { id: nextId.current++, role: "user", content },
-    ]);
+    if (!content || isSending) return;
+    addMessage("user", content);
     setDraft("");
+    if (!projectId) return;
+
+    setIsSending(true);
+    try {
+      const res = await fetch("/api/ai/design", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: content, roomId: projectId, projectId }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(body?.error ?? "Request failed");
+      }
+      addMessage("assistant", "On it. Watch the canvas as I build the design.");
+    } catch (err) {
+      addMessage(
+        "assistant",
+        `I couldn't start that: ${err instanceof Error ? err.message : "unknown error"}`
+      );
+    } finally {
+      setIsSending(false);
+    }
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault();
-      submit(draft);
+      void submit(draft);
     }
   }
 
@@ -91,7 +117,7 @@ function ArchitectTab() {
                 <button
                   key={prompt}
                   type="button"
-                  onClick={() => submit(prompt)}
+                  onClick={() => void submit(prompt)}
                   className="rounded-full bg-subtle px-3 py-1.5 text-xs text-accent-ai-text transition-colors hover:bg-elevated focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                   {prompt}
@@ -140,8 +166,8 @@ function ArchitectTab() {
           />
           <Button
             size="icon"
-            onClick={() => submit(draft)}
-            disabled={!draft.trim()}
+            onClick={() => void submit(draft)}
+            disabled={!draft.trim() || isSending}
             aria-label="Send message"
             className="shrink-0 rounded-xl bg-accent-ai text-white hover:bg-accent-ai/90"
           >
@@ -192,7 +218,7 @@ function SpecsTab() {
 }
 
 /** Floating AI chat sidebar that slides in from the right. Open state is owned by the parent. */
-export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
+export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
   return (
     <aside
       aria-label="AI assistant"
@@ -238,7 +264,7 @@ export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
           </TabsList>
         </div>
         <TabsContent value="architect" className="flex min-h-0 flex-col">
-          <ArchitectTab />
+          <ArchitectTab projectId={projectId} />
         </TabsContent>
         <TabsContent value="specs" className="min-h-0">
           <SpecsTab />

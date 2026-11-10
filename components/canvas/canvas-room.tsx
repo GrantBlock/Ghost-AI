@@ -24,7 +24,7 @@ export function CanvasRoom({ roomId }: { roomId: string }) {
       <RoomProvider id={roomId} initialPresence={{ cursor: null, isThinking: false }}>
         <CanvasErrorBoundary>
           <ClientSideSuspense fallback={<CanvasLoading />}>
-            <CanvasFlow />
+            <CanvasFlow projectId={roomId} />
           </ClientSideSuspense>
         </CanvasErrorBoundary>
       </RoomProvider>

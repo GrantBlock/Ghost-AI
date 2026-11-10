@@ -2,13 +2,18 @@
 
 import { UserButton } from "@clerk/nextjs";
 import {
+  AlertCircle,
+  Check,
   LayoutTemplate,
+  Loader2,
   PanelLeftClose,
   PanelLeftOpen,
+  Save,
   Share2,
   Sparkles,
 } from "lucide-react";
 
+import type { SaveStatus } from "@/components/editor/save-status";
 import { Button } from "@/components/ui/button";
 
 interface EditorNavbarProps {
@@ -20,6 +25,23 @@ interface EditorNavbarProps {
   onToggleAi?: () => void;
   onShare?: () => void;
   onOpenTemplates?: () => void;
+  /** Flushes pending canvas changes immediately. */
+  onSave?: () => void;
+  saveStatus?: SaveStatus;
+}
+
+const SAVE_LABELS: Record<SaveStatus, string> = {
+  idle: "Save",
+  saving: "Saving…",
+  saved: "Saved",
+  error: "Save failed",
+};
+
+function SaveIcon({ status }: { status: SaveStatus }) {
+  if (status === "saving") return <Loader2 className="h-4 w-4 animate-spin" />;
+  if (status === "saved") return <Check className="h-4 w-4 text-state-success" />;
+  if (status === "error") return <AlertCircle className="h-4 w-4 text-state-error" />;
+  return <Save className="h-4 w-4" />;
 }
 
 export function EditorNavbar({
@@ -30,6 +52,8 @@ export function EditorNavbar({
   onToggleAi,
   onShare,
   onOpenTemplates,
+  onSave,
+  saveStatus = "idle",
 }: EditorNavbarProps) {
   const ToggleIcon = isSidebarOpen ? PanelLeftClose : PanelLeftOpen;
   const label = isSidebarOpen ? "Close sidebar" : "Open sidebar";
@@ -67,6 +91,19 @@ export function EditorNavbar({
               >
                 <LayoutTemplate className="h-4 w-4" />
                 Templates
+              </Button>
+            ) : null}
+            {onSave ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl"
+                onClick={onSave}
+                disabled={saveStatus === "saving"}
+                aria-live="polite"
+              >
+                <SaveIcon status={saveStatus} />
+                {SAVE_LABELS[saveStatus]}
               </Button>
             ) : null}
             <Button

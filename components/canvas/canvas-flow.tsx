@@ -24,6 +24,7 @@ import {
   type DragEvent,
 } from "react";
 
+import { AiCursor, AiStatusBanner } from "@/components/canvas/ai-activity";
 import { CanvasControls } from "@/components/canvas/canvas-controls";
 import { CanvasEdgeView } from "@/components/canvas/canvas-edge";
 import { CanvasNodeView } from "@/components/canvas/canvas-node";
@@ -33,6 +34,8 @@ import {
   type CanvasTemplate,
 } from "@/components/editor/starter-templates";
 import { ShapePanel } from "@/components/canvas/shape-panel";
+import { useCanvasAutosave } from "@/hooks/use-canvas-autosave";
+import { useCanvasLoad } from "@/hooks/use-canvas-load";
 import {
   CANVAS_EDGE_TYPE,
   CANVAS_NODE_TYPE,
@@ -93,13 +96,25 @@ function getTransparentImage() {
   return transparentImage;
 }
 
-function Canvas() {
+function Canvas({ projectId }: { projectId: string }) {
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, onDelete } =
     useLiveblocksFlow<CanvasNode, CanvasEdge>({
       suspense: true,
       nodes: { initial: [] },
       edges: { initial: [] },
     });
+
+  // Persistence: load the saved canvas into an empty room, then autosave changes.
+  const loadState = useCanvasLoad(
+    projectId,
+    nodes.length > 0 || edges.length > 0
+  );
+  useCanvasAutosave({
+    projectId,
+    nodes,
+    edges,
+    enabled: loadState === "ready",
+  });
   const { screenToFlowPosition, addNodes, getZoom } = useReactFlow<
     CanvasNode,
     CanvasEdge
@@ -247,19 +262,23 @@ function Canvas() {
         <Panel position="bottom-left" className="z-10">
           <CanvasControls />
         </Panel>
+        <Panel position="top-center">
+          <AiStatusBanner />
+        </Panel>
         <Panel position="bottom-center">
           <ShapePanel />
         </Panel>
+        <AiCursor />
       </ReactFlow>
     </div>
   );
 }
 
 /** React Flow bound to Liveblocks Storage (suspends until storage is ready). */
-export function CanvasFlow() {
+export function CanvasFlow({ projectId }: { projectId: string }) {
   return (
     <ReactFlowProvider>
-      <Canvas />
+      <Canvas projectId={projectId} />
     </ReactFlowProvider>
   );
 }
