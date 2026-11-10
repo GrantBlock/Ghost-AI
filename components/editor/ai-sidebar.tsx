@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -22,20 +23,14 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useSelf } from "@liveblocks/react";
+import { useAiChat } from "@/hooks/use-ai-chat";
 import { useAiStatus } from "@/hooks/use-ai-status";
 import { cn } from "@/lib/utils";
 
 interface AiSidebarProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Project (= Liveblocks room) the design agent edits. */
-  projectId?: string;
-}
-
-interface ChatMessage {
-  id: number;
-  role: "user" | "assistant";
-  content: string;
 }
 
 const STARTER_PROMPTS = [
@@ -50,14 +45,20 @@ const TEXTAREA_MAX_HEIGHT = 160;
 const tabTriggerClass =
   "text-copy-muted hover:text-copy-secondary data-active:bg-accent-ai/15 data-active:text-accent-ai-text dark:text-copy-muted dark:hover:text-copy-secondary dark:data-active:border-transparent dark:data-active:bg-accent-ai/15 dark:data-active:text-accent-ai-text";
 
-function ArchitectTab({ projectId }: { projectId?: string }) {
+function formatTime(timestamp: number) {
+  return new Date(timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function ArchitectTab() {
   const [isSending, setIsSending] = useState(false);
-  const { isGenerating, latest } = useAiStatus();
-  const isBusy = isSending || isGenerating;
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const { latest } = useAiStatus();
+  const { messages, send } = useAiChat();
+  const self = useSelf();
+  const senderName = self?.info?.name ?? "Guest";
   const [draft, setDraft] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const nextId = useRef(1);
+  const bottomRef = useRef<HTMLLIElement>(null);
 
   // Auto-resize the textarea between the min and max height as content changes.
   useLayoutEffect(() => {
@@ -70,34 +71,21 @@ function ArchitectTab({ projectId }: { projectId?: string }) {
     )}px`;
   }, [draft]);
 
-  function addMessage(role: ChatMessage["role"], content: string) {
-    setMessages((prev) => [...prev, { id: nextId.current++, role, content }]);
-  }
+  // Keep the newest message in view.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: "end" });
+  }, [messages.length]);
 
   async function submit(text: string) {
     const content = text.trim();
-    if (!content || isBusy) return;
-    addMessage("user", content);
-    setDraft("");
-    if (!projectId) return;
-
+    if (!content || isSending) return;
     setIsSending(true);
+    setSendError(null);
     try {
-      const res = await fetch("/api/ai/design", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: content, roomId: projectId, projectId }),
-      });
-      if (!res.ok) {
-        const body = (await res.json().catch(() => null)) as { error?: string } | null;
-        throw new Error(body?.error ?? "Request failed");
-      }
-      addMessage("assistant", "On it. Watch the canvas as I build the design.");
-    } catch (err) {
-      addMessage(
-        "assistant",
-        `I couldn't start that: ${err instanceof Error ? err.message : "unknown error"}`
-      );
+      await send(senderName, content);
+      setDraft("");
+    } catch {
+      setSendError("Message failed to send. Try again.");
     } finally {
       setIsSending(false);
     }
@@ -140,26 +128,30 @@ function ArchitectTab({ projectId }: { projectId?: string }) {
           </div>
         ) : (
           <ul className="flex flex-col gap-3 p-4">
-            {messages.map((message) => (
-              <li
-                key={message.id}
-                className={cn(
-                  "flex",
-                  message.role === "user" ? "justify-end" : "justify-start"
-                )}
-              >
-                <p
-                  className={cn(
-                    "max-w-[85%] rounded-2xl px-3 py-2 text-sm break-words whitespace-pre-wrap",
-                    message.role === "user"
-                      ? "border-2 border-brand/50 bg-accent-dim text-copy-primary"
-                      : "border border-surface-border bg-elevated text-accent-ai-text"
-                  )}
+            {messages.map((message) => {
+              const mine = message.sender === senderName;
+              return (
+                <li
+                  key={message.id}
+                  className={cn("flex flex-col gap-1", mine ? "items-end" : "items-start")}
                 >
-                  {message.content}
-                </p>
-              </li>
-            ))}
+                  <span className="px-1 text-[11px] text-copy-faint">
+                    {mine ? "You" : message.sender} · {formatTime(message.timestamp)}
+                  </span>
+                  <p
+                    className={cn(
+                      "max-w-[85%] rounded-2xl px-3 py-2 text-sm break-words whitespace-pre-wrap",
+                      mine
+                        ? "border-2 border-brand/50 bg-accent-dim text-copy-primary"
+                        : "border border-surface-border bg-elevated text-copy-primary"
+                    )}
+                  >
+                    {message.content}
+                  </p>
+                </li>
+              );
+            })}
+            <li ref={bottomRef} aria-hidden className="h-0" />
           </ul>
         )}
       </ScrollArea>
@@ -181,15 +173,21 @@ function ArchitectTab({ projectId }: { projectId?: string }) {
             <span className="truncate">{latest.text}</span>
           </div>
         ) : null}
+        {sendError ? (
+          <p role="alert" className="mb-2 flex items-center gap-1.5 text-xs text-state-error">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            {sendError}
+          </p>
+        ) : null}
         <div className="flex items-end gap-2">
           <Textarea
             ref={textareaRef}
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={isGenerating ? "Ghost AI is working…" : "Describe your architecture…"}
-            aria-label="Message Ghost AI"
-            disabled={isBusy}
+            placeholder="Message the room…"
+            aria-label="Message the room"
+            disabled={isSending}
             rows={1}
             style={{ minHeight: TEXTAREA_MIN_HEIGHT, maxHeight: TEXTAREA_MAX_HEIGHT }}
             className="min-h-0 resize-none rounded-xl text-sm"
@@ -197,12 +195,12 @@ function ArchitectTab({ projectId }: { projectId?: string }) {
           <Button
             size="icon"
             onClick={() => void submit(draft)}
-            disabled={!draft.trim() || isBusy}
-            aria-busy={isBusy}
+            disabled={!draft.trim() || isSending}
+            aria-busy={isSending}
             aria-label="Send message"
             className="shrink-0 rounded-xl bg-accent-ai text-white hover:bg-accent-ai/90"
           >
-            {isBusy ? (
+            {isSending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Send className="h-4 w-4" />
@@ -253,7 +251,7 @@ function SpecsTab() {
 }
 
 /** Floating AI chat sidebar that slides in from the right. Open state is owned by the parent. */
-export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
+export function AiSidebar({ isOpen, onClose }: AiSidebarProps) {
   return (
     <aside
       aria-label="AI assistant"
@@ -299,7 +297,7 @@ export function AiSidebar({ isOpen, onClose, projectId }: AiSidebarProps) {
           </TabsList>
         </div>
         <TabsContent value="architect" className="flex min-h-0 flex-col">
-          <ArchitectTab projectId={projectId} />
+          <ArchitectTab />
         </TabsContent>
         <TabsContent value="specs" className="min-h-0">
           <SpecsTab />

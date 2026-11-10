@@ -20,3 +20,22 @@ export function parseAiStatusMessage(data: unknown): AiStatusMessage | null {
   const result = aiStatusMessageSchema.safeParse(data);
   return result.success ? result.data : null;
 }
+
+/** Shared Liveblocks feed carrying room chat messages (separate from `ai-status-feed`). */
+export const AI_CHAT_FEED_ID = "ai-chat";
+
+/** Payload of a message in the `ai-chat` feed. */
+export const aiChatMessageSchema = z.object({
+  sender: z.string().min(1),
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1),
+  timestamp: z.number(),
+});
+
+export type AiChatMessage = z.infer<typeof aiChatMessageSchema>;
+
+/** Returns the validated chat payload, or null when it does not match the schema. */
+export function parseAiChatMessage(data: unknown): AiChatMessage | null {
+  const result = aiChatMessageSchema.safeParse(data);
+  return result.success ? result.data : null;
+}

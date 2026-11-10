@@ -27,11 +27,16 @@ declare global {
     // Custom events, for useBroadcastEvent, useEventListener
     RoomEvent: {};
 
-    // Messages in the shared "ai-status-feed" (validated by aiStatusMessageSchema in types/tasks.ts)
+    // Messages in the shared feeds: "ai-status-feed" (aiStatusMessageSchema) and
+    // "ai-chat" (aiChatMessageSchema), both validated in types/tasks.ts
     FeedMessageData: {
       text?: string;
       kind?: "start" | "processing" | "complete" | "error";
       runId?: string;
+      sender?: string;
+      role?: "user" | "assistant";
+      content?: string;
+      timestamp?: number;
     };
 
     // Custom metadata set on threads, for useThreads, useCreateThread, etc.

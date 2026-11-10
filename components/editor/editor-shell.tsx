@@ -76,7 +76,6 @@ export function EditorShell({
             <AiSidebar
               isOpen={isAiOpen}
               onClose={() => setIsAiOpen(false)}
-              projectId={projectId}
             />
           </div>
         ) : typeof children === "function" ? (
